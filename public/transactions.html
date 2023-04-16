@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>movements</title>
+  <title>Fund Movements</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/5.0.0-alpha1/css/bootstrap.min.css"
     integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl5/1z7/ppx1z8+M8z1t5h/5fffdQoi5g5t8GA/IRX" crossorigin="anonymous">
@@ -12,59 +12,49 @@
   <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/tr.js"></script>
-  <style>
-    .d0 {
-      background-color: #ebebeb !important;
-    }
-
-    .d1 {
-      background-color: #ffffff !important;
-    }
-
-    .table>:not(caption)>*>* {
-      box-shadow: none !important;
-    }
-
-    tbody tr td {word-wrap: break-word;;}
-  </style>
 
   <script>
     $(document).ready(async function () {
       let currentPage = 0;
-      let totalPages;
       const pageSize = 25;
-      const customerId = 3912;
+      const customerId = 3250;
+      const today = new Date();
+      const formattedToday = today.toISOString().slice(0, 10);
+      $("#minDate").val(formattedToday);
+      $("#maxDate").val(formattedToday);
 
-      const fetchmovements = async (customerId, page, minDateFormatted, maxDateFormatted) => {
-        const response = await fetch(`http://localhost:3000/fundMovement/getFundMovements`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ customerId: customerId, page: page, date_min: minDateFormatted, date_max: maxDateFormatted })
-        });
-        const data = await response.json();
-        const totalItems = data.totalItems;
-        const totalPages = Math.ceil(totalItems / pageSize);
-        return { data, totalPages };
+      const fetchFundMovements = async (customerId, page, minDate, maxDate) => {
+  const response = await fetch(`http://localhost:3000/fundMovement/getFundMovements`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ customerId: customerId, page: page, minDate: minDate, maxDate: maxDate })
+  });
+  const data = await response.json();
+  return data;
+};
+
+const sortFundMovements = (fundMovements) => {
+  return fundMovements.sort((a, b) => {
+    return new Date(a.formattedDate) - new Date(b.formattedDate);
+  });
+};
+
+
+
+
+      const filterFundMovementsByCustomerId = (data, customerId) => {
+        return data.filter(item => item.customer_id === customerId);
       };
 
 
-      const rendermovements = (movements) => {
-        const tbody = $('#movementsTable tbody');
+
+      const renderFundMovements = (fundMovements) => {
+        const tbody = $('#fundMovementsTable tbody');
         tbody.empty();
 
-        const rows = generateRows(movements);
-        tbody.append(rows);
-      };
-
-      function generateRows(data) {
-        const tbody = $('#movementsTable tbody');
-        tbody.empty();
-
-        let backgroundColorClass = "d0";
-
-        data.forEach((element, index) => {
+        fundMovements.forEach((element) => {
           const date = new Date(element.create_date_f);
           let transactionNo = element.transaction_no;
           if (transactionNo.startsWith('CO')) {
@@ -74,7 +64,7 @@
           if (transactionNo.startsWith('CO')) {
             formattedDescription = 'Tahsilat Makbuzu';
           }
-          const formattedDate = ('0' + date.getDate()).slice(-2) + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + date.getFullYear();
+          const formattedDate = ('0' + date.getDate()).slice(-2) + '.' + ('0' + (date.getMonth() + 1)).slice(-2) + '.' + date.getFullYear();
           const formattedDebt = formatMoney(element.debt, 2, ",", ".");
           const formattedCredit = formatMoney(element.credit, 2, ",", ".");
           let formattedBalance;
@@ -99,112 +89,58 @@
           row.append(`<td style="text-align: right;">${formattedBalance}</td>`);
 
           tbody.append(row);
-
-
         });
-      }
-
-
-      const updatePagination = async () => {
-        const minDateFormatted = $("#minDate").val() ? formatDate($("#minDate").val(), "YYYY-MM-DD") : null;
-        const maxDateFormatted = $("#maxDate").val() ? formatDate($("#maxDate").val(), "YYYY-MM-DD") : null;
-        const { data: movements, totalPages: newTotalPages } = await fetchmovements(customerId, currentPage, minDateFormatted, maxDateFormatted);
-totalPages = newTotalPages;
-        rendermovements(movements);
-        $('#currentPage').text(currentPage + 1);
-
-        // Update page numbers
-        const pagination = $('#pagination');
-        pagination.empty();
-
-        if (totalPages > 1) {
-          const prevLi = $('<li class="page-item"></li>');
-          const prevA = $('<a id="previousPage" class="page-link" href="#">Geri</a>');
-          if (currentPage === 0) {
-            prevLi.addClass('disabled');
-            prevA.attr('aria-disabled', 'true');
-          }
-          prevLi.append(prevA);
-          pagination.append(prevLi);
-
-          for (let i = Math.max(0, currentPage - 1); i < Math.min(totalPages, currentPage + 2); i++) {
-            const li = $('<li class="page-item"></li>');
-            const a = $('<a class="page-link"></a>').text(i + 1).attr('href', '#').data('page', i);
-
-            if (i === currentPage) {
-              li.addClass('active');
-            }
-
-            li.append(a);
-            pagination.append(li);
-          }
-
-          const nextLi = $('<li class="page-item"></li>');
-          const nextA = $('<a id="nextPage" class="page-link" href="#">İleri</a>');
-          if (currentPage === totalPages - 1) {
-            nextLi.addClass('disabled');
-            nextA.attr('aria-disabled', 'true');
-          }
-          nextLi.append(nextA);
-          pagination.append(nextLi);
-        }
       };
 
-      // Tarih formatını dönüştürme işlevi
-      function formatDate(date, format) {
-        const parts = date.split('-');
-        if (format === "YYYY-MM-DD") {
-          return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        } else if (format === "DD-MM-YYYY") {
-          return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-      }
+      $('#filterButton').click(async () => {
+  currentPage = 0;
+  updatePagination();
+});
 
-      // Tarih seçicileri başlatma
-      const today = new Date();
-      const todayFormatted = `${today.getDate().toString().padStart(2, '0')}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getFullYear()}`;
-      $("#minDate").flatpickr({
-        dateFormat: "d-m-Y",
-        defaultDate: todayFormatted,
-        locale: "tr"
-      });
-      $("#maxDate").flatpickr({
-        dateFormat: "d-m-Y",
-        defaultDate: todayFormatted,
-        locale: "tr"
-      });
 
-      // Filtrele butonuna tıklandığında sayfayı yeniden doldurma
-      $("#filterForm").submit(async function (event) {
-        event.preventDefault();
-        currentPage = 0;
-        await updatePagination();
-      });
+
+const updatePagination = async () => {
+  const tbody = $('#fundMovementsTable tbody');
+  tbody.empty(); // Veri getirme işlemine başlamadan önce tabloyu temizleyin.
+  
+  const minDate = $('#minDate').val();
+  const maxDate = $('#maxDate').val();
+  const fundMovements = await fetchFundMovements(customerId, currentPage, minDate, maxDate);
+  const sortedFundMovements = sortFundMovements(fundMovements);
+  renderFundMovements(sortedFundMovements);
+  $('#currentPage').text(currentPage + 1);
+};
+
 
 
       (async function () {
-  await updatePagination();
+        const fundMovements = await fetchFundMovements(customerId);
+        renderFundMovements(fundMovements);
 
-  $("#pagination").on("click", "a.page-link", async function (event) {
-    event.preventDefault();
-    const newPage = $(this).data('page');
+        $("#pagination").on("click", "a.page-link", async function (event) {
+          event.preventDefault();
+          currentPage = parseInt($(this).text()) - 1;
+          updatePagination();
+        });
 
-    if (newPage !== undefined) {
-      currentPage = newPage;
-    } else if ($(this).attr('id') === 'previousPage') {
-      currentPage = Math.max(0, currentPage - 1);
-    } else if ($(this).attr('id') === 'nextPage') {
-      currentPage = Math.min(totalPages - 1, currentPage + 1);
-    }
+        $('#previousPage').click(async () => {
+          if (currentPage > 0) {
+            currentPage -= 1;
+            updatePagination();
+          }
+        });
 
-    await updatePagination();
-  });
-})();
+        $('#nextPage').click(async () => {
+          currentPage += 1;
+          updatePagination();
+        });
 
-
+        updatePagination();
+      })();
 
 
     });
+
 
     function formatMoney(amount, decimalCount, decimal = ".", thousands = ",") {
       decimalCount = Math.abs(decimalCount);
@@ -218,61 +154,51 @@ totalPages = newTotalPages;
       return negativeSign + (j ? i.substr(0, j) + thousands : '') + i.substr(j).replace(/(\d{3})(?=\d)/g, "$1" + thousands) + (decimalCount ? decimal + Math.abs(amount - i).toFixed(decimalCount).slice(2) : "");
     }
 
-    function formatPrice(price) {
-  const formatter = new Intl.NumberFormat('tr-TR', {
-    style: 'decimal',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return formatter.format(price);
-}
 
   </script>
-
 </head>
 
 <body>
   <div class="container">
-    <h1>Cari Hesap Hareketleri</h1>
-    <form id="filterForm" class="mb-3">
-      <div class="row">
-        <div class="col">
-          <label for="minDate" class="form-label">Başlangıç Tarihi</label>
-          <input type="text" class="form-control" id="minDate" placeholder="DD-MM-YYYY">
-        </div>
-        <div class="col">
-          <label for="maxDate" class="form-label">Bitiş Tarihi</label>
-          <input type="text" class="form-control" id="maxDate" placeholder="DD-MM-YYYY">
-        </div>
-      </div>
-      <button type="submit" class="btn btn-primary mt-3">Filtrele</button>
-    </form>
-    <div class="responsive-table">
-      <table id="movementsTable" class="table table-striped">
-        <thead>
-          <tr>
-            <th>Tarih</th>
-            <th>Referans No</th>
-            <th>Açıklama</th>
-            <th style="text-align: right;">Borç</th>
-            <th style="text-align: right;">Alacak</th>
-            <th style="text-align: right;">Bakiye</th>
-          </tr>
-        </thead>
-        <tbody>
-        </tbody>
-      </table>
-    </div>
+    <h1>Fund Movements</h1>
+<div class="row mt-3">
+  <div class="col-md-4">
+    <label for="minDate">Başlangıç Tarihi:</label>
+    <input type="date" id="minDate" class="form-control">
+  </div>
+  <div class="col-md-4">
+    <label for="maxDate">Bitiş Tarihi:</label>
+    <input type="date" id="maxDate" class="form-control">
+  </div>
+  <div class="col-md-4">
+    <button id="filterButton" class="btn btn-primary mt-4">Filtrele</button>
+  </div>
+</div>
+
+    <table id="fundMovementsTable" class="table table-striped">
+      <thead>
+        <tr>
+          <th>Tarih</th>
+          <th>Referans No</th>
+          <th>Açıklama</th>
+          <th style="text-align: right;">Borç</th>
+          <th style="text-align: right;">Alacak</th>
+          <th style="text-align: right;">Bakiye</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
     <nav>
       <ul class="pagination">
         <li class="page-item">
-          <a id="previousPage" class="page-link" href="#">Geri</a>
+          <a id="previousPage" class="page-link" href="#">Previous</a>
         </li>
         <li class="page-item">
           <span id="currentPage" class="page-link">1</span>
         </li>
         <li class="page-item">
-          <a id="nextPage" class="page-link" href="#">İleri</a>
+          <a id="nextPage" class="page-link" href="#">Next</a>
         </li>
       </ul>
     </nav>

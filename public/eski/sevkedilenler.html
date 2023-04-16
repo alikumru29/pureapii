@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>provisions</title>
+  <title>Orders</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/5.0.0-alpha1/css/bootstrap.min.css"
     integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl5/1z7/ppx1z8+M8z1t5h/5fffdQoi5g5t8GA/IRX" crossorigin="anonymous">
@@ -25,25 +25,22 @@
       box-shadow: none !important;
     }
 
-    tbody tr td {
-      word-wrap: break-word;
-      ;
-    }
+    tbody tr td {word-wrap: break-word;;}
   </style>
 
   <script>
     $(document).ready(async function () {
       let currentPage = 0;
-      const pageSize = 25;
-      const customerId = 3172;
+      const pageSize = 1;
+      const customerId = 3957;
 
-      const fetchprovisions = async (customerId, page, minDate, maxDate) => {
-        const response = await fetch(`http://localhost:3000/fundMovement/pay`, {
+      const fetchorders = async (customerId, page, minDate, maxDate, status) => {
+        const response = await fetch(`http://localhost:3000/order/getOrders/tamamlanan`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ customerId: customerId, page: page, minDate: minDate, maxDate: maxDate })
+          body: JSON.stringify({ customerId: customerId, page: page, minDate: minDate, maxDate: maxDate, status: status })
         });
         const data = await response.json();
         const totalItems = data.totalItems;
@@ -52,34 +49,57 @@
       };
 
 
-      const renderprovisions = (provisions) => {
-        const tbody = $('#provisionsTable tbody');
+      const renderorders = (orders) => {
+        const tbody = $('#ordersTable tbody');
         tbody.empty();
 
-        const rows = generateRows(provisions);
+        const rows = generateRows(orders);
         tbody.append(rows);
       };
 
       function generateRows(data) {
-        const tbody = $('#provisionsTable tbody');
+        const tbody = $('#ordersTable tbody');
         tbody.empty();
 
+        let backgroundColorClass = "d0";
 
-        $.each(data, function (index, element) {
-          const date = new Date(element.date * 1000).toLocaleDateString('tr-TR');
-          const installmentTotal = parseInt(element.installment) + parseInt(element.installment_plus);
-          const amountFormatted = parseFloat(element.amount).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' }).replace("₺", " ");
+        data.forEach((element, index) => {
+          const orderStatus = element._order_status_name;
+          const items = element._items;
+          const shipAddress = element._deliveryAddress.address;
+          const shipTown = element._deliveryAddress.town;
+          const shipCity = element._deliveryAddress.city;
+          const shipFullAddress = `${shipAddress}</br> ${shipTown} - ${shipCity}`;
+          const date_create = element.date_create;
+          const dateObj = new Date(date_create);
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // January is 0!
+          const year = dateObj.getFullYear();
+          const date = `${day}-${month}-${year}`;
+          const ordernum = element.order_number.slice(3);
 
-          const row = $('<tr></tr>');
-          row.append(`<td data-label='Tarih'>${date}</td>`);
-          row.append(`<td data-label='İşlem No'>${element.transaction_no.slice(6, -3)}</td>`);
-          row.append(`<td data-label='Firma'>${element.customer_company}</td>`);
-          row.append(`<td data-label='Banka'>${element.card_bank}</td>`);
-          row.append(`<td data-label='Kart Sahibi'>${element.card_holder}</td>`);
-          row.append(`<td data-label='Taksit'>${element.installment} + ${element.installment_plus}</td>`);
-          row.append(`<td data-label='Tutar' class='amount-cell' style="text-align: right;">${amountFormatted}</td>`);
+          items.forEach((item, itemIndex) => {
+            const row = $('<tr></tr>').addClass(backgroundColorClass);
 
-          tbody.append(row);
+            if (itemIndex === 0) {
+              row.append(`<td rowspan="${items.length}" data-label='Tarih'>${date}</td>`);
+              row.append(`<td rowspan="${items.length}" data-label='Referans No'>${ordernum}</td>`);
+            }
+
+            row.append(`<td data-label='Ürün Kodu'>${item.sku}</td>`);
+            row.append(`<td data-label='Ürün Adı'>${item.product_name}</td>`);
+            row.append(`<td data-label='Miktar' style="text-align:center">${item.quantity}</td>`);
+            row.append(`<td data-label='Tutar'>${formatPrice(item.sale_price)}</td>`);
+
+            if (itemIndex === 0) {
+              row.append(`<td rowspan="${items.length}" data-label='Sevk adresi' style="min-width: 150px; max-width: 250px;">${shipFullAddress}</td>`);
+              row.append(`<td rowspan="${items.length}" data-label='Durum'>${orderStatus}</td>`);
+            }
+
+            tbody.append(row);
+          });
+
+          backgroundColorClass = backgroundColorClass === "d0" ? "d1" : "d0";
         });
       }
 
@@ -87,10 +107,8 @@
       const updatePagination = async () => {
         const minDateFormatted = $("#minDate").val() ? formatDate($("#minDate").val(), "YYYY-MM-DD") : null;
         const maxDateFormatted = $("#maxDate").val() ? formatDate($("#maxDate").val(), "YYYY-MM-DD") : null;
-
-        const { data: provisions, totalPages } = await fetchprovisions(customerId, currentPage, minDateFormatted, maxDateFormatted);
-
-        renderprovisions(provisions);
+        const { data: orders, totalPages } = await fetchorders(customerId, currentPage, minDateFormatted, maxDateFormatted);
+        renderorders(orders);
         $('#currentPage').text(currentPage + 1);
 
         // Update page numbers
@@ -132,14 +150,13 @@
 
       // Tarih formatını dönüştürme işlevi
       function formatDate(date, format) {
-  const parts = date.split('-');
-  if (format === "YYYY-MM-DD") {
-    return `${parts[0]}-${parts[1]}-${parts[2]}`;
-  } else if (format === "DD-MM-YYYY") {
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  }
-}
-
+        const parts = date.split('-');
+        if (format === "YYYY-MM-DD") {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        } else if (format === "DD-MM-YYYY") {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+      }
 
       // Tarih seçicileri başlatma
       const today = new Date();
@@ -199,15 +216,13 @@
     }
 
     function formatPrice(price) {
-      const formatter = new Intl.NumberFormat('tr-TR', {
-        style: 'decimal',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-      return formatter.format(price);
-    }
-
-
+  const formatter = new Intl.NumberFormat('tr-TR', {
+    style: 'decimal',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return formatter.format(price);
+}
 
   </script>
 
@@ -215,7 +230,7 @@
 
 <body>
   <div class="container">
-    <h1>Kredi Kartı Hareketleri</h1>
+    <h1>Verilen Siparişler</h1>
     <form id="filterForm" class="mb-3">
       <div class="row">
         <div class="col">
@@ -230,16 +245,17 @@
       <button type="submit" class="btn btn-primary mt-3">Filtrele</button>
     </form>
     <div class="responsive-table">
-      <table id="provisionsTable" class="table table-striped">
+      <table id="ordersTable" class="table table-striped">
         <thead>
           <tr>
             <th>Tarih</th>
             <th>Referans No</th>
-            <th>Firma</th>
-            <th>Banka</th>
-            <th>Kart Sahibi</th>
-            <th>Taksit</th>
-            <th style="text-align: right;">Tutar</th>
+            <th>Ürün Kodu</th>
+            <th>Ürün Adı</th>
+            <th style="text-align:center">Miktar</th>
+            <th>Tutar</th>
+            <th>Sevk adresi</th>
+            <th>Durum</th>
           </tr>
         </thead>
         <tbody>

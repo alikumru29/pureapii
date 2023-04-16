@@ -30,13 +30,14 @@ async function getToken() {
 
 
 
-async function pay(token, customerId, start, length, minDate, maxDate) {
+async function pay(token, customerId, start, length, minDate, maxDate,approval) {
   const url = 'https://bayi.pureconcept.com.tr/rest1/report/provisionReports';
   const postData = {
     searchData: {
       customer_id: customerId,
       date_min: minDate,
       date_max: maxDate,
+      approval: true, // Buraya approval özelliğini ekledik
     },
     pagingData: {
       start: start,
@@ -53,11 +54,9 @@ async function pay(token, customerId, start, length, minDate, maxDate) {
       "Expires": "0"
     },
   });
-
-  console.log("API'den dönen veri:", response.data.data);
-  const approvedData = response.data.data.filter(item => item.approval === true);
-  return approvedData;
+  return response.data;
 }
+
 
 
 async function fundmovements(token, customerId, start, length, minDate, maxDate) {
