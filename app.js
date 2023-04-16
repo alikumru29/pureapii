@@ -71,7 +71,7 @@ async function fundmovements(token, customerId, start, length, minDate, maxDate)
     pagingData: {
       start: start,
       length: length,
-      order: [['id', 'asc']],
+      order: [['id', 'desc']],
     },
   };
   const response = await axios.post(url, postData, {

@@ -10,7 +10,6 @@
     integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl5/1z7/ppx1z8+M8z1t5h/5fffdQoi5g5t8GA/IRX" crossorigin="anonymous">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
-  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/tr.js"></script>
 
@@ -18,33 +17,30 @@
     $(document).ready(async function () {
       let currentPage = 0;
       const pageSize = 25;
-      const customerId = 3912;
+      const customerId = 3250;
       const today = new Date();
-      const formattedToday = today.toISOString().split('T')[0];
-      $('#minDate').val(formattedToday);
-      $('#maxDate').val(formattedToday);
-
-      $('#filterForm').on('submit', async (event) => {
-        event.preventDefault();
-        const minDate = $('#minDate').val().split('-').reverse().join('-');
-        const maxDate = $('#maxDate').val().split('-').reverse().join('-');
-        const fundMovements = await fetchFundMovements(customerId, currentPage, minDate, maxDate);
-        renderFundMovements(fundMovements);
-      });
+      const formattedToday = today.toISOString().slice(0, 10);
+      $("#minDate").val(formattedToday);
+      $("#maxDate").val(formattedToday);
 
       const fetchFundMovements = async (customerId, page, minDate, maxDate) => {
-        const response = await fetch(`http://localhost:3000/fundMovement/getFundMovements`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ customerId: customerId, page: page, minDate: minDate, maxDate: maxDate })
-        });
-        const data = await response.json();
-        return data;
-      };
+  const response = await fetch(`http://localhost:3000/fundMovement/getFundMovements`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ customerId: customerId, page: page, minDate: minDate, maxDate: maxDate })
+  });
+  const data = await response.json();
+  return data;
+};
 
-      
+const sortFundMovements = (fundMovements) => {
+  return fundMovements.sort((a, b) => {
+    return new Date(a.formattedDate) - new Date(b.formattedDate);
+  });
+};
+
 
 
 
@@ -55,11 +51,6 @@
 
 
       const renderFundMovements = (fundMovements) => {
-        fundMovements.sort((a, b) => {
-          const dateA = new Date(a.create_date_f);
-          const dateB = new Date(b.create_date_f);
-          return dateA - dateB;
-        });
         const tbody = $('#fundMovementsTable tbody');
         tbody.empty();
 
@@ -101,40 +92,50 @@
         });
       };
 
+      $('#filterButton').click(async () => {
+  currentPage = 0;
+  updatePagination();
+});
 
 
-      const updatePagination = async (minDate, maxDate) => {
-        const fundMovements = await fetchFundMovements(customerId, currentPage, minDate, maxDate);
-        renderFundMovements(fundMovements);
-        $('#currentPage').text(currentPage + 1);
-      };
+
+const updatePagination = async () => {
+  const tbody = $('#fundMovementsTable tbody');
+  tbody.empty(); // Veri getirme işlemine başlamadan önce tabloyu temizleyin.
+  
+  const minDate = $('#minDate').val();
+  const maxDate = $('#maxDate').val();
+  const fundMovements = await fetchFundMovements(customerId, currentPage, minDate, maxDate);
+  const sortedFundMovements = sortFundMovements(fundMovements);
+  renderFundMovements(sortedFundMovements);
+  $('#currentPage').text(currentPage + 1);
+};
+
 
 
       (async function () {
-        const minDate = $('#minDate').val().split('-').reverse().join('-');
-        const maxDate = $('#maxDate').val().split('-').reverse().join('-');
-        const fundMovements = await fetchFundMovements(customerId, currentPage, minDate, maxDate);
+        const fundMovements = await fetchFundMovements(customerId);
         renderFundMovements(fundMovements);
 
         $("#pagination").on("click", "a.page-link", async function (event) {
           event.preventDefault();
           currentPage = parseInt($(this).text()) - 1;
-          updatePagination(minDate, maxDate);
+          updatePagination();
         });
 
         $('#previousPage').click(async () => {
           if (currentPage > 0) {
             currentPage -= 1;
-            updatePagination(minDate, maxDate);
+            updatePagination();
           }
         });
 
         $('#nextPage').click(async () => {
           currentPage += 1;
-          updatePagination(minDate, maxDate);
+          updatePagination();
         });
 
-        updatePagination(minDate, maxDate);
+        updatePagination();
       })();
 
 
@@ -160,21 +161,20 @@
 <body>
   <div class="container">
     <h1>Fund Movements</h1>
-    <form id="filterForm" class="mb-3">
-      <div class="row">
-        <div class="col">
-          <label for="minDate" class="form-label">Başlangıç Tarihi</label>
-          <input type="date" class="form-control" id="minDate" placeholder="DD-MM-YYYY">
-        </div>
-        <div class="col">
-          <label for="maxDate" class="form-label">Bitiş Tarihi</label>
-          <input type="date" class="form-control" id="maxDate" placeholder="DD-MM-YYYY">
-        </div>
-        <div class="col d-flex align-items-end">
-          <button type="submit" class="btn btn-primary">Filtrele</button>
-        </div>
-      </div>
-    </form>
+<div class="row mt-3">
+  <div class="col-md-4">
+    <label for="minDate">Başlangıç Tarihi:</label>
+    <input type="date" id="minDate" class="form-control">
+  </div>
+  <div class="col-md-4">
+    <label for="maxDate">Bitiş Tarihi:</label>
+    <input type="date" id="maxDate" class="form-control">
+  </div>
+  <div class="col-md-4">
+    <button id="filterButton" class="btn btn-primary mt-4">Filtrele</button>
+  </div>
+</div>
+
     <table id="fundMovementsTable" class="table table-striped">
       <thead>
         <tr>
