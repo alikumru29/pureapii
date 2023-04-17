@@ -1,12 +1,11 @@
 const express = require('express');
 const axios = require('axios');
-const NodeCache = require('node-cache');
 const cors = require('cors'); // CORS paketini dahil edin
 
 const API_USERNAME = 'uzum';
 const API_PASSWORD = '123456aA';
 const app = express();
-const cache = new NodeCache();
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -234,6 +233,6 @@ async function handleOrderRequest(req, res) {
 
 
 
-app.listen(3000, () => {
-  console.log('Sunucu http://localhost:3000 adresinde çalışıyor');
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
