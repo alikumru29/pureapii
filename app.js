@@ -29,14 +29,14 @@ async function getToken() {
 
 
 
-async function pay(token, customerId, start, length, minDate, maxDate,approval) {
+async function pay(token, customerId, start, length, minDate, maxDate, approval) {
   const url = 'https://bayi.pureconcept.com.tr/rest1/report/provisionReports';
   const postData = {
     searchData: {
       customer_id: customerId,
       date_min: minDate,
       date_max: maxDate,
-      approval: true, // Buraya approval özelliğini ekledik
+      approval: true,
     },
     pagingData: {
       start: start,
@@ -69,7 +69,7 @@ async function fundmovements(token, customerId, start, length, minDate, maxDate)
     pagingData: {
       start: start,
       length: length,
-      order: [['id', 'desc']],
+      order: [['id', 'asc']],
     },
   };
   const response = await axios.post(url, postData, {
@@ -122,8 +122,9 @@ app.post('/fundMovement/pay', async (req, res) => {
     const start = page * pageSize;
     const minDate = req.body.minDate;
     const maxDate = req.body.maxDate;
+    const approval = req.body.approval; // Burada approval değerini alıyoruz
     const token = await getToken();
-    const data = await pay(token, customerId, start, pageSize, minDate, maxDate);
+    const data = await pay(token, customerId, start, pageSize, minDate, maxDate, approval);
     console.log('pay() fonksiyonundan dönen veri:', data);
     res.json(data);
   } catch (error) {
@@ -131,6 +132,7 @@ app.post('/fundMovement/pay', async (req, res) => {
     res.status(500).send('Bir hata oluştu');
   }
 });
+
 
 
 

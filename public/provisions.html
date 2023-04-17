@@ -17,30 +17,64 @@
     $(document).ready(async function () {
       let currentPage = 0;
       const pageSize = 25;
-      const customerId = 3172;
+      const customerId = await fetchCustomerId();
+      if (!customerId) {
+        console.error("Error: Could not fetch customer_id.");
+        return;
+      }
       const today = new Date();
       const formattedToday = today.toISOString().slice(0, 10);
       $("#minDate").val(formattedToday);
       $("#maxDate").val(formattedToday);
 
-      const fetchprovisions = async (customerId, page, minDate, maxDate) => {
-  const response = await fetch(`http://localhost:3000/fundMovement/pay`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ customerId: customerId, page: page, minDate: minDate, maxDate: maxDate })
-  });
-  const data = await response.json();
-  return data.data; // Burada "data" yerine "data.data" döndürüyoruz.
-};
+
+      async function fetchCustomerId() {
+        try {
+          const response = await fetch("https://bayi.pureconcept.com.tr/dealers/profile");
+          const responseText = await response.text();
+          const parser = new DOMParser();
+          const parsedDoc = parser.parseFromString(responseText, 'text/html');
+          const scripts = Array.from(parsedDoc.querySelectorAll("script"));
+          const customerIdElement = scripts.find((script) => script.textContent.includes('var cData'));
+
+          if (customerIdElement) {
+            const cDataString = customerIdElement.textContent || customerIdElement.innerText;
+            const cDataMatch = cDataString.match(/"customer_id":(\d+)/);
+            if (cDataMatch && cDataMatch[1]) {
+              const loggedInCustomerId = parseInt(cDataMatch[1], 10);
+              return loggedInCustomerId;
+            } else {
+              console.error("Error: customer_id not found");
+              return null;
+            }
+          } else {
+            console.error("Error: cData script element not found");
+            return null;
+          }
+        } catch (error) {
+          console.error("Error while fetching customer_id:", error);
+          return null;
+        }
+      }
+
+      const fetchprovisions = async (customerId, page, minDate, maxDate, approval = true) => {
+        const response = await fetch(`https://pureapi.herokuapp.com/fundMovement/pay`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ customerId: customerId, page: page, minDate: minDate, maxDate: maxDate, approval: approval })
+        });
+        const data = await response.json();
+        return data.data; // Burada "data" yerine "data.data" döndürüyoruz.
+      };
 
 
-const sortprovisions = (provisions) => {
-  return provisions.sort((a, b) => {
-    return new Date(a.formattedDate) - new Date(b.formattedDate);
-  });
-};
+      const sortprovisions = (provisions) => {
+        return provisions.sort((a, b) => {
+          return new Date(a.formattedDate) - new Date(b.formattedDate);
+        });
+      };
 
 
 
@@ -74,53 +108,74 @@ const sortprovisions = (provisions) => {
       };
 
       $('#filterButton').click(async () => {
-  currentPage = 0;
-  updatePagination();
-});
-
-
-
-const updatePagination = async () => {
-  const tbody = $('#provisionsTable tbody');
-  tbody.empty(); // Veri getirme işlemine başlamadan önce tabloyu temizleyin.
-  
-  const minDate = $('#minDate').val();
-  const maxDate = $('#maxDate').val();
-  const provisions = await fetchprovisions(customerId, currentPage, minDate, maxDate);
-  const sortedprovisions = sortprovisions(provisions);
-  renderprovisions(sortedprovisions);
-  $('#currentPage').text(currentPage + 1);
-};
-
-
-
-      (async function () {
-        const provisions = await fetchprovisions(customerId);
-        renderprovisions(provisions);
-
-        $("#pagination").on("click", "a.page-link", async function (event) {
-          event.preventDefault();
-          currentPage = parseInt($(this).text()) - 1;
-          updatePagination();
-        });
-
-        $('#previousPage').click(async () => {
-          if (currentPage > 0) {
-            currentPage -= 1;
-            updatePagination();
-          }
-        });
-
-        $('#nextPage').click(async () => {
-          currentPage += 1;
-          updatePagination();
-        });
-
+        currentPage = 0;
         updatePagination();
-      })();
+      });
 
 
+
+      const updatePagination = async () => {
+    const table = $('#provisionsTable');
+    const pagination = $('.pagination-nav');
+    const tbody = table.find('tbody');
+
+    const minDate = $('#minDate').val();
+    const maxDate = $('#maxDate').val();
+    const provisions = await fetchprovisions(customerId, currentPage, minDate, maxDate);
+
+    if (provisions.length === 0) {
+      tbody.empty();
+      table.hide(); // Tabloyu gizle
+      pagination.hide(); // Paginasyonu gizle
+      return;
+    }
+
+    table.show(); // Veri varsa tabloyu göster
+    pagination.show(); // Veri varsa paginasyonu göster
+    renderprovisions(provisions);
+    $('#currentPage').text(currentPage + 1);
+
+    if (currentPage === 0) {
+      $('#previousPage').parent().addClass('disabled');
+    } else {
+      $('#previousPage').parent().removeClass('disabled');
+    }
+
+    if (provisions.length < pageSize) {
+      $('#nextPage').parent().addClass('disabled');
+    } else {
+      $('#nextPage').parent().removeClass('disabled');
+    }
+  };
+
+  // İlk sayfa açılışında tabloyu gizle
+  $('#provisionsTable').hide();
+
+  (async function () {
+    const provisions = await fetchprovisions(customerId);
+    renderprovisions(provisions);
+
+    $("#pagination").on("click", "a.page-link", async function (event) {
+      event.preventDefault();
+      currentPage = parseInt($(this).text()) - 1;
+      updatePagination();
     });
+
+    $('#previousPage').click(async () => {
+      if (currentPage > 0) {
+        currentPage -= 1;
+        updatePagination();
+      }
+    });
+
+    $('#nextPage').click(async () => {
+      currentPage += 1;
+      updatePagination();
+    });
+
+    updatePagination();
+  })();
+});
 
 
     function formatMoney(amount, decimalCount, decimal = ".", thousands = ",") {
@@ -141,20 +196,26 @@ const updatePagination = async () => {
 
 <body>
   <div class="container">
-    <h1>provisions</h1>
-<div class="row mt-3">
-  <div class="col-md-4">
-    <label for="minDate">Başlangıç Tarihi:</label>
-    <input type="date" id="minDate" class="form-control">
-  </div>
-  <div class="col-md-4">
-    <label for="maxDate">Bitiş Tarihi:</label>
-    <input type="date" id="maxDate" class="form-control">
-  </div>
-  <div class="col-md-4">
-    <button id="filterButton" class="btn btn-primary mt-4">Filtrele</button>
-  </div>
-</div>
+    <h1>Kredi Kartı Hareketleri</h1>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="form-group">
+          <label for="minDate">Başlangıç Tarihi:</label>
+          <input type="date" id="minDate" class="form-control">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="form-group">
+          <label for="maxDate">Bitiş Tarihi:</label>
+          <input type="date" id="maxDate" class="form-control">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="form-group">
+          <button id="filterButton" class="btn btn-primary" style="margin-top: 25px;">Filtrele</button>
+        </div>
+      </div>
+    </div>
 
     <table id="provisionsTable" class="table table-striped">
       <thead>
@@ -171,16 +232,16 @@ const updatePagination = async () => {
       <tbody>
       </tbody>
     </table>
-    <nav>
+    <nav class="pagination-nav" style="display:none;">
       <ul class="pagination">
         <li class="page-item">
-          <a id="previousPage" class="page-link" href="#">Previous</a>
+          <a id="previousPage" class="page-link" href="#">Geri</a>
         </li>
         <li class="page-item">
           <span id="currentPage" class="page-link">1</span>
         </li>
         <li class="page-item">
-          <a id="nextPage" class="page-link" href="#">Next</a>
+          <a id="nextPage" class="page-link" href="#">İleri</a>
         </li>
       </ul>
     </nav>

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hesap Hareketleri</title>
+  <title>Sevk Edilen Siparişler</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/5.0.0-alpha1/css/bootstrap.min.css"
     integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl5/1z7/ppx1z8+M8z1t5h/5fffdQoi5g5t8GA/IRX" crossorigin="anonymous">
@@ -12,18 +12,21 @@
   <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/tr.js"></script>
-
   <style>
-    tr .text-successs {
-      color: green
-    }
-    
-    tr .font-weight-bold {
-      font-weight: bold;
+    .d0 {
+      background-color: #ebebeb !important;
     }
 
+    .d1 {
+      background-color: #ffffff !important;
+    }
+
+    .table>:not(caption)>*>* {
+      box-shadow: none !important;
+    }
+
+    tbody tr td {word-wrap: break-word;;}
   </style>
-
   <script>
     $(document).ready(async function () {
       let currentPage = 0;
@@ -37,6 +40,7 @@
       const formattedToday = today.toISOString().slice(0, 10);
       $("#minDate").val(formattedToday);
       $("#maxDate").val(formattedToday);
+
 
       async function fetchCustomerId() {
         try {
@@ -67,78 +71,67 @@
         }
       }
 
-
-
-      const fetchFundMovements = async (customerId, page, minDate, maxDate) => {
-        const response = await fetch(`https://pureapi.herokuapp.com/fundMovement/getFundMovements`, {
+      const fetchorders = async (customerId, page, minDate, maxDate, status) => {
+        const response = await fetch(`https://pureapi.herokuapp.com/order/getOrders/tamamlanan`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ customerId: customerId, page: page, minDate: minDate, maxDate: maxDate })
+          body: JSON.stringify({ customerId: customerId, page: page, minDate: minDate, maxDate: maxDate, status: status })
         });
         const data = await response.json();
-        return data;
+        const totalItems = data.totalItems;
+        const totalPages = Math.ceil(totalItems / pageSize);
+        return { data, totalPages };
       };
 
-      const sortFundMovements = (fundMovements) => {
-        return fundMovements.sort((a, b) => {
-          return new Date(a.formattedDate) - new Date(b.formattedDate);
-        });
-      };
-
-
-
-
-      const filterFundMovementsByCustomerId = (data, customerId) => {
+      const filterordersByCustomerId = (data, customerId) => {
         return data.filter(item => item.customer_id === customerId);
       };
 
 
-
-      const renderFundMovements = (fundMovements) => {
-        const tbody = $('#fundMovementsTable tbody');
-        const pagination = $('.pagination');
-
-
+      const renderorders = (orders) => {
+        const tbody = $('#ordersTable tbody');
         tbody.empty();
 
+        let backgroundColorClass = "d0";
 
-        fundMovements.forEach((element) => {
-          const date = new Date(element.create_date_f);
-          let transactionNo = element.transaction_no;
-          if (transactionNo.startsWith('CO')) {
-            transactionNo = transactionNo.slice(6, -3);
-          }
-          let formattedDescription = element.description;
-          if (transactionNo.startsWith('CO')) {
-            formattedDescription = 'Tahsilat Makbuzu';
-          }
-          const formattedDate = ('0' + date.getDate()).slice(-2) + '.' + ('0' + (date.getMonth() + 1)).slice(-2) + '.' + date.getFullYear();
-          const formattedDebt = formatMoney(element.debt, 2, ",", ".");
-          const formattedCredit = formatMoney(element.credit, 2, ",", ".");
-          let formattedBalance;
-          if (element._balance < 0) {
-            formattedBalance = formatMoney(Math.abs(element._balance), 2, ",", ".");
-          } else if (element._balance > 0) {
-            formattedBalance = "-" + formatMoney(element._balance, 2, ",", ".");
-          } else {
-            formattedBalance = "0,00";
-          }
+        orders.forEach((element) => {
+          const orderStatus = element._order_status_name;
+          const items = element._items;
+          const shipAddress = element._deliveryAddress.address;
+          const shipTown = element._deliveryAddress.town;
+          const shipCity = element._deliveryAddress.city;
+          const shipFullAddress = `${shipAddress}</br> ${shipTown} - ${shipCity}`;
+          const date_create = element.date_create;
+          const dateObj = new Date(date_create);
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // January is 0!
+          const year = dateObj.getFullYear();
+          const date = `${day}-${month}-${year}`;
+          const ordernum = element.order_number.slice(3);
 
-          const debtColor = element.debt > 0 ? 'text-danger font-weight-bold' : '';
-          const creditColor = element.credit > 0 ? 'text-successs font-weight-bold' : '';
-          const balanceColor = element.debt > 0 ? 'text-danger font-weight-bold' : (element.credit > 0 ? 'text-successs font-weight-bold' : '');
+          items.forEach((item, itemIndex) => {
+            const row = $('<tr></tr>').addClass(backgroundColorClass);
 
-          const row = $('<tr></tr>');
-          row.append(`<td>${formattedDate}</td>`);
-          row.append(`<td>${transactionNo}</td>`);
-          row.append(`<td>${formattedDescription}</td>`);
-          row.append(`<td class="${debtColor}" style="text-align: right;">${formattedDebt}</td>`);
-          row.append(`<td class="${creditColor}" style="text-align: right;">${formattedCredit}</td>`);
-          row.append(`<td style="text-align: right;">${formattedBalance}</td>`);
+            if (itemIndex === 0) {
+              row.append(`<td rowspan="${items.length}" data-label='Tarih'>${date}</td>`);
+              row.append(`<td rowspan="${items.length}" data-label='Referans No'>${ordernum}</td>`);
+            }
 
-          tbody.append(row);
+            row.append(`<td data-label='Ürün Kodu'>${item.sku}</td>`);
+            row.append(`<td data-label='Ürün Adı'>${item.product_name}</td>`);
+            row.append(`<td data-label='Miktar' style="text-align:center">${item.quantity}</td>`);
+            row.append(`<td data-label='Tutar'>${formatPrice(item.sale_price)}</td>`);
+
+            if (itemIndex === 0) {
+              row.append(`<td rowspan="${items.length}" data-label='Sevk adresi' style="min-width: 150px; max-width: 250px;">${shipFullAddress}</td>`);
+              row.append(`<td rowspan="${items.length}" data-label='Durum'>${orderStatus}</td>`);
+            }
+
+            tbody.append(row);
+          });
+          backgroundColorClass = backgroundColorClass === "d0" ? "d1" : "d0";
         });
       };
 
@@ -150,43 +143,47 @@
 
 
       const updatePagination = async () => {
-  const table = $('#fundMovementsTable');
-  const pagination = $('.pagination-nav');
-  const tbody = table.find('tbody');
+        const table = $('#ordersTable');
+        const pagination = $('.pagination-nav');
+        const tbody = table.find('tbody');
 
-  const minDate = $('#minDate').val();
-  const maxDate = $('#maxDate').val();
-  const fundMovements = await fetchFundMovements(customerId, currentPage, minDate, maxDate);
+        const minDate = $('#minDate').val();
+        const maxDate = $('#maxDate').val();
+        const fetchedData = await fetchorders(customerId, currentPage, minDate, maxDate);
+        const orders = fetchedData.data;
 
-  if (fundMovements.length === 0) {
-    tbody.empty();
-    table.hide(); // Tabloyu gizle
-    pagination.hide(); // Paginasyonu gizle
-    return;
-  }
+        if (orders.length === 0) {
+          tbody.empty();
+          table.hide(); // Tabloyu gizle
+          pagination.hide(); // Paginasyonu gizle
+          return;
+        }
 
-  table.show(); // Veri varsa tabloyu göster
-  pagination.show(); // Veri varsa paginasyonu göster
-  renderFundMovements(fundMovements);
-  $('#currentPage').text(currentPage + 1);
+        table.show(); // Veri varsa tabloyu göster
+        pagination.show(); // Veri varsa paginasyonu göster
+        renderorders(orders);
+        $('#currentPage').text(currentPage + 1);
 
-  if (currentPage === 0) {
-    $('#previousPage').parent().addClass('disabled');
-  } else {
-    $('#previousPage').parent().removeClass('disabled');
-  }
+        if (currentPage === 0) {
+          $('#previousPage').parent().addClass('disabled');
+        } else {
+          $('#previousPage').parent().removeClass('disabled');
+        }
 
-  if (fundMovements.length < pageSize) {
-    $('#nextPage').parent().addClass('disabled');
-  } else {
-    $('#nextPage').parent().removeClass('disabled');
-  }
-};
+        if (orders.length < pageSize) {
+          $('#nextPage').parent().addClass('disabled');
+        } else {
+          $('#nextPage').parent().removeClass('disabled');
+        }
+      };
 
+      // İlk sayfa açılışında tabloyu gizle
+      $('#ordersTable').hide();
 
       (async function () {
-        const fundMovements = await fetchFundMovements(customerId);
-        renderFundMovements(fundMovements);
+        const fetchedData = await fetchorders(customerId);
+        const orders = fetchedData.data;
+        renderorders(orders);
 
         $("#pagination").on("click", "a.page-link", async function (event) {
           event.preventDefault();
@@ -208,8 +205,6 @@
 
         updatePagination();
       })();
-
-
     });
 
 
@@ -225,13 +220,22 @@
       return negativeSign + (j ? i.substr(0, j) + thousands : '') + i.substr(j).replace(/(\d{3})(?=\d)/g, "$1" + thousands) + (decimalCount ? decimal + Math.abs(amount - i).toFixed(decimalCount).slice(2) : "");
     }
 
+    function formatPrice(price) {
+      const formatter = new Intl.NumberFormat('tr-TR', {
+        style: 'decimal',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      return formatter.format(price);
+    }
+
 
   </script>
 </head>
 
 <body>
   <div class="container">
-    <h1>Cari Hesap Hareketleri</h1>
+    <h1>Sevk Edilen Siparişler</h1>
     <div class="row">
       <div class="col-md-4">
         <div class="form-group">
@@ -252,15 +256,17 @@
       </div>
     </div>
 
-    <table id="fundMovementsTable" class="table table-striped" style="display:none; margin-top:30px;">
+    <table id="ordersTable" class="table table-striped">
       <thead>
         <tr>
           <th>Tarih</th>
           <th>Referans No</th>
-          <th>Açıklama</th>
-          <th style="text-align: right;">Borç</th>
-          <th style="text-align: right;">Alacak</th>
-          <th style="text-align: right;">Bakiye</th>
+          <th>Ürün Kodu</th>
+          <th>Ürün Adı</th>
+          <th style="text-align:center">Miktar</th>
+          <th>Tutar</th>
+          <th>Sevk adresi</th>
+          <th>Durum</th>
         </tr>
       </thead>
       <tbody>
