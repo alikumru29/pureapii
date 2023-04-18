@@ -1,9 +1,9 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors'); // CORS paketini dahil edin
-
-const API_USERNAME = 'uzum';
-const API_PASSWORD = '123456aA';
+require('dotenv').config();
+const API_USERNAME = process.env.API_USERNAME;
+const API_PASSWORD = process.env.API_PASSWORD;
 const app = express();
 const PORT = process.env.PORT || 3000;
 
