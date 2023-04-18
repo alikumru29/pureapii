@@ -25,7 +25,17 @@
       box-shadow: none !important;
     }
 
-    tbody tr td {word-wrap: break-word;;}
+    tbody tr td {word-wrap: break-word;}
+
+    @media screen and (min-width: 768px) {
+    .desktop-centered {
+      text-align: center;
+    }
+
+    .desktop-width {
+      min-width: 150px;
+      max-width: 250px;
+  }
   </style>
   <script>
     $(document).ready(async function () {
@@ -121,11 +131,11 @@
 
             row.append(`<td data-label='Ürün Kodu'>${item.sku}</td>`);
             row.append(`<td data-label='Ürün Adı'>${item.product_name}</td>`);
-            row.append(`<td data-label='Miktar' style="text-align:center">${item.quantity}</td>`);
+            row.append(`<td data-label='Miktar' class="desktop-centered">${item.quantity}</td>`);
             row.append(`<td data-label='Tutar'>${formatPrice(item.sale_price)}</td>`);
 
             if (itemIndex === 0) {
-              row.append(`<td rowspan="${items.length}" data-label='Sevk adresi' style="min-width: 150px; max-width: 250px;">${shipFullAddress}</td>`);
+              row.append(`<td rowspan="${items.length}" data-label='Sevk adresi' class="desktop-width">${shipFullAddress}</td>`);
               row.append(`<td rowspan="${items.length}" data-label='Durum'>${orderStatus}</td>`);
             }
 
@@ -256,14 +266,14 @@
       </div>
     </div>
 
-    <table id="ordersTable" class="table table-striped">
+    <table id="ordersTable" class="table table-striped responsive-table">
       <thead>
         <tr>
           <th>Tarih</th>
           <th>Referans No</th>
           <th>Ürün Kodu</th>
           <th>Ürün Adı</th>
-          <th style="text-align:center">Miktar</th>
+          <th class="desktop-centered">Miktar</th>
           <th>Tutar</th>
           <th>Sevk adresi</th>
           <th>Durum</th>
