@@ -1,1 +1,1 @@
-web: node --watch app.js
+web: node app.js
