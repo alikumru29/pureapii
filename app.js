@@ -29,7 +29,7 @@ async function getToken() {
 
 
 
-async function pay(token, customerId, start, length, minDate, maxDate, state_id) {
+async function pay(token, customerId, start, length, minDate, maxDate) {
   const url = 'https://bayi.pureconcept.com.tr/rest1/report/provisionReports';
   const postData = {
     searchData: {
@@ -55,6 +55,7 @@ async function pay(token, customerId, start, length, minDate, maxDate, state_id)
   });
   return response.data;
 }
+
 
 
 
@@ -123,7 +124,7 @@ app.post('/fundMovement/pay', async (req, res) => {
     const minDate = req.body.minDate;
     const maxDate = req.body.maxDate;
     const token = await getToken();
-    const data = await pay(token, customerId, start, pageSize, minDate, maxDate, state_id);
+    const data = await pay(token, customerId, start, pageSize, minDate, maxDate);
     console.log('pay() fonksiyonundan dönen veri:', data);
     res.json(data);
   } catch (error) {
@@ -131,6 +132,7 @@ app.post('/fundMovement/pay', async (req, res) => {
     res.status(500).send('Bir hata oluştu');
   }
 });
+
 
 
 
