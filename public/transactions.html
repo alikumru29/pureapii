@@ -59,7 +59,7 @@
 
 
       const fetchFundMovements = async (customerId, page, minDate, maxDate) => {
-        const response = await fetch(`https://pureapi.herokuapp.com/fundMovement/getFundMovements`, {
+        const response = await fetch(`https://api.pureconcept.com.tr/fundMovement/getFundMovements`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

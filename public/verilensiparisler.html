@@ -73,7 +73,7 @@
     }
 
     const fetchorders = async (customerId, page, minDate, maxDate, status) => {
-      const response = await fetch(`https://pureapi.herokuapp.com/order/getOrders/verilen`, {
+      const response = await fetch(`https://api.pureconcept.com.tr/order/getOrders/verilen`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

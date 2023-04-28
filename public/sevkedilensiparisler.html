@@ -73,7 +73,7 @@
     }
 
     const fetchorders = async (customerId, page, minDate, maxDate, status) => {
-      const response = await fetch(`https://pureapi.herokuapp.com/order/getOrders/tamamlanan`, {
+      const response = await fetch(`https://api.pureconcept.com.tr/order/getOrders/tamamlanan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -126,7 +126,7 @@
           row.append(`<td data-label='Tutar'>${formatPrice(item.sale_price)}</td>`);
 
           if (itemIndex === 0) {
-            row.append(`<td rowspan="${items.length}" data-label='Sevk adresi' style="min-width: 150px; max-width: 250px;">${shipFullAddress}</td>`);
+            row.append(`<td rowspan="${items.length}" data-label='Sevk adresi' class="desktop-width">${shipFullAddress}</td>`);
             row.append(`<td rowspan="${items.length}" data-label='Durum'>${orderStatus}</td>`);
           }
 
