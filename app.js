@@ -29,14 +29,14 @@ async function getToken() {
 
 
 
-async function pay(token, customerId, start, length, minDate, maxDate, approval) {
+async function pay(token, customerId, start, length, minDate, maxDate, state_id) {
   const url = 'https://bayi.pureconcept.com.tr/rest1/report/provisionReports';
   const postData = {
     searchData: {
       customer_id: customerId,
       date_min: minDate,
       date_max: maxDate,
-      approval: true,
+      state_id: 99,
     },
     pagingData: {
       start: start,
@@ -122,9 +122,8 @@ app.post('/fundMovement/pay', async (req, res) => {
     const start = page * pageSize;
     const minDate = req.body.minDate;
     const maxDate = req.body.maxDate;
-    const approval = req.body.approval; // Burada approval değerini alıyoruz
     const token = await getToken();
-    const data = await pay(token, customerId, start, pageSize, minDate, maxDate, approval);
+    const data = await pay(token, customerId, start, pageSize, minDate, maxDate, state_id);
     console.log('pay() fonksiyonundan dönen veri:', data);
     res.json(data);
   } catch (error) {
