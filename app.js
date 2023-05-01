@@ -2,8 +2,8 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors'); // CORS paketini dahil edin
 
-const API_USERNAME = process.env.API_USERNAME;
-const API_PASSWORD = process.env.API_PASSWORD;
+const API_USERNAME = 'uzum';
+const API_PASSWORD = '123456aA';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -40,7 +40,10 @@ async function getToken() {
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of b236ac8 (v2)
 =======
 >>>>>>> parent of b236ac8 (v2)
 async function pay(token, customerId, start, length, minDate, maxDate, approval) {
