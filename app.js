@@ -128,9 +128,9 @@ app.post('/fundMovement/pay', async (req, res) => {
     console.log('pay() fonksiyonundan dönen veri:', data);
     res.json(data);
   } catch (error) {
-    console.error('Hata:', error);
-    res.status(500).send('Bir hata oluştu');
-  }
+    console.error('Hata:', error.message);
+    res.status(500).send('Bir hata oluştu: ' + error.message);
+}
 });
 
 
@@ -147,9 +147,9 @@ app.post('/fundMovement/getFundMovements', async (req, res) => {
     const data = await fundmovements(token, customerId, start, pageSize, minDate, maxDate);
     res.json(data);
   } catch (error) {
-    console.error('Hata: ', error.message);
-    res.status(500).send('Bir hata oluştu');
-  }
+    console.error('Hata:', error.message);
+    res.status(500).send('Bir hata oluştu: ' + error.message);
+}
 });
 
 
@@ -172,9 +172,9 @@ app.post('/order/getOrders', async (req, res) => {
 
     res.json(filteredOrders);
   } catch (error) {
-    console.error('Hata: ', error.message);
-    res.status(500).send('Bir hata oluştu');
-  }
+    console.error('Hata:', error.message);
+    res.status(500).send('Bir hata oluştu: ' + error.message);
+}
 });
 
 
