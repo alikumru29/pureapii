@@ -50,7 +50,7 @@ async function pay(token, customerId, start, length, minDate, maxDate, approval)
     pagingData: {
       start: start,
       length: length,
-      order: [['id', 'asc']],
+      order: [['create_date', 'asc']],
     },
   };
   const response = await axios.post(url, postData, {
