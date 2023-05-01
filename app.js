@@ -17,15 +17,26 @@ const pageSize = 25;
 const loginUrl = 'https://bayi.pureconcept.com.tr/rest1/auth/login/' + API_USERNAME;
 
 async function getToken() {
-  const response = await axios.post(loginUrl, 'password=' + encodeURIComponent(API_PASSWORD), {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  });
+  try {
+    const response = await axios.post(loginUrl, 'password=' + encodeURIComponent(API_PASSWORD), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
 
-  console.log(response.data);
-  return response.data.data.token;
+    if (response.data && response.data.data && response.data.data.token) {
+      console.log("Token:", response.data.data.token);
+      return response.data.data.token;
+    } else {
+      console.error("Token alınamadı, yanıt:", response.data);
+      return null;
+    }
+  } catch (error) {
+    console.error("Token alınırken hata oluştu:", error.message);
+    return null;
+  }
 }
+
 
 
 
