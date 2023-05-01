@@ -38,14 +38,6 @@ async function getToken() {
 }
 
 
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-=======
->>>>>>> parent of b236ac8 (v2)
-=======
->>>>>>> parent of b236ac8 (v2)
 async function pay(token, customerId, start, length, minDate, maxDate, approval) {
   const url = 'https://bayi.pureconcept.com.tr/rest1/report/provisionReports';
   const postData = {
