@@ -89,8 +89,13 @@ async function fundmovements(token, customerId, start, length, minDate, maxDate)
   });
 
   console.log(response.data);
-  return response.data.data;
+
+  // description alanı null olmayanları filtreleme
+  const filteredData = response.data.data.filter(item => item.description !== null);
+
+  return filteredData;
 }
+
 
 
 async function orders(token, customerId, start, length, status, minDate, maxDate) {
