@@ -92,9 +92,8 @@ async function fundmovements(token, customerId, start, length, minDate, maxDate)
 
   // description alanı null olmayanları filtreleme
   //const filteredData = response.data.data.filter(item => item.description !== null);
-  //return filteredData;
 
-  return response.dataa;
+  return filteredData;
 }
 
 
