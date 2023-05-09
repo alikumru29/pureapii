@@ -94,7 +94,7 @@ async function fundmovements(token, customerId, start, length, minDate, maxDate)
   //const filteredData = response.data.data.filter(item => item.description !== null);
   //return filteredData;
 
-  return response.data;
+  return response.dataa;
 }
 
 
